@@ -79,7 +79,11 @@ ConsumerCluster.prototype.init = function () {
       models.Cluster.createTable(tableName, awsConfig, capacity, localDynamo, done)
     }]
   }, function (err) {
-    if (err) return _this.logAndEmitError(err, 'Error ensuring Dynamo table exists')
+    if (err) {
+      _this.logger.error(err, 'Error ensuring Dynamo table exists')
+
+      return _killAllConsumers(err)
+    }
 
     _this._bindListeners()
     _this._loopReportClusterToNetwork()
@@ -174,7 +178,6 @@ ConsumerCluster.prototype._hasTooManyShards = function () {
   return this.consumerIds.length > (lowestInOutterNetwork + 1)
 }
 
-
 /**
  * Fetch data about unleased shards.
  */
@@ -192,15 +195,16 @@ ConsumerCluster.prototype.fetchAvailableShard = function () {
     leases: function (done) {
       var tableName = _this.opts.tableName
       var awsConfig = _this.opts.awsConfig
-      var localDynamo = !! _this.opts.localDynamo
+      var localDynamo = !!_this.opts.localDynamo
       models.Lease.fetchAll(tableName, awsConfig, localDynamo, function (err, leases) {
         if (err) return done(err)
-        done(null, leases.Items)
+
+        return done(null, leases.Items)
       })
     }
   }, function (err, data) {
     if (err) {
-      return _this.logAndEmitError(err, 'Error fetching available shards')
+      return _this.logger.error(err, 'Error fetching available shards')
     }
 
     var finishedShardIds = data.leases.filter(function (lease) {
@@ -244,8 +248,8 @@ ConsumerCluster.prototype.fetchAvailableShard = function () {
  * @param {number}  leaseCounter
  */
 ConsumerCluster.prototype.spawn = function (shardId, leaseCounter) {
-  if (! shardId) {
-    throw new Error('Cannot spawn consumer without shard ID')
+  if (!shardId) {
+    return _killAllConsumers('Cannot spawn consumer without shard ID')
   }
 
   this.logger.info({shardId: shardId, leaseCounter: leaseCounter}, 'Spawning consumer')
@@ -328,7 +332,7 @@ ConsumerCluster.prototype._killAllConsumers = function (err) {
   var _this = this
 
   return async.each(_this.consumerIds, _this._killConsumer.bind(this), function () {
-    return _this.emit('error', err)
+    throw new Error(err)
   });
 }
 
@@ -347,7 +351,7 @@ ConsumerCluster.prototype._loopFetchExternalNetwork = function () {
   }
 
   function handleError(err) {
-    _this.logAndEmitError(err, 'Error fetching external network data')
+    _this.logger.error(err, 'Error fetching external network data')
   }
 
   async.forever(fetchThenWait, handleError)
@@ -390,7 +394,7 @@ ConsumerCluster.prototype._loopReportClusterToNetwork = function () {
   }
 
   function handleError(err) {
-    _this.logAndEmitError(err, 'Error reporting cluster to network')
+    _this.logger.error(err, 'Error reporting cluster to network')
   }
 
   async.forever(reportThenWait, handleError)
@@ -422,23 +426,4 @@ ConsumerCluster.prototype._garbageCollectClusters = function () {
       this.logger.info('Garbage collected %d clusters', garbageCollectedClusters.length)
     }
   }.bind(this))
-}
-
-/**
- * Error helper.
- *
- * @param {Error}   err
- * @param {string}  desc
- */
-ConsumerCluster.prototype.logAndEmitError = function (err, desc) {
-  switch (err.code) {
-    case AWS_KINESIS_ERROR_CODES.ERR_CHECK_COALITION:
-      this.logger.warn('Multiple workers tried to acquire the same shard at the same time')
-    default:
-      this.logger.error(desc)
-      this.logger.error(err)
-
-      // Kills all consumers and then resets the cluster
-      this._killAllConsumers(err)
-  }
 }
