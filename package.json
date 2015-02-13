@@ -1,0 +1,39 @@
+{
+  "name": "kinesis-client-library",
+  "version": "0.2.0",
+  "description": "Process Kinesis streams and automatically scale up or down as shards split or merge.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jshint *.js lib"
+  },
+  "author": "Evan Solomon",
+  "license": "MIT",
+  "bin": {
+    "launch-kinesis-cluster": "./bin/launch"
+  },
+  "homepage": "https://github.com/evansolomon/nodejs-kinesis-client-library",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/evansolomon/nodejs-kinesis-client-library.git"
+  },
+  "bugs": {
+    "url": "https://github.com/evansolomon/nodejs-kinesis-client-library/issues"
+  },
+  "keywords": [
+    "aws",
+    "kinesis"
+  ],
+  "dependencies": {
+    "async": "^0.9.0",
+    "aws-sdk": "^2.0.29",
+    "bunyan": "^1.2.3",
+    "local-dynamo": "0.0.3",
+    "minimist": "^1.1.0",
+    "mkdirp": "^0.5.0",
+    "underscore": "^1.7.0",
+    "vogels": "^0.12.0"
+  },
+  "devDependencies": {
+    "jshint": "^2.5.10"
+  }
+}
