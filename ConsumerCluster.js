@@ -249,7 +249,7 @@ ConsumerCluster.prototype.fetchAvailableShard = function () {
  */
 ConsumerCluster.prototype.spawn = function (shardId, leaseCounter) {
   if (!shardId) {
-    return _killAllConsumers('Cannot spawn consumer without shard ID')
+    return _this.logger.error('Cannot spawn consumer without shard ID')
   }
 
   this.logger.info({shardId: shardId, leaseCounter: leaseCounter}, 'Spawning consumer')
