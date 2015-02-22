@@ -82,7 +82,7 @@ ConsumerCluster.prototype.init = function () {
     if (err) {
       _this.logger.error(err, 'Error ensuring Dynamo table exists')
 
-      return _killAllConsumers(err)
+      return _this._killAllConsumers(err)
     }
 
     _this._bindListeners()
